@@ -54,7 +54,7 @@ export function AvatarUpload({ avatarUrl, fallbackEmoji = "🎤", size = 96 }: A
       </div>
       <span
         onClick={() => inputRef.current?.click()}
-        className="text-[13.5px] text-[#c084fc] font-semibold mt-3 cursor-pointer"
+        className="text-[13.5px] text-[#60a5fa] font-semibold mt-3 cursor-pointer"
       >
         {uploading ? "Uploading..." : "Change profile photo"}
       </span>

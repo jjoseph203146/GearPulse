@@ -1,12 +1,22 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { useAppState } from "@/hooks/useAppState";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchRig } from "@/features/gear/data";
+import type { RigItem } from "@/types";
 import { EmptyRig } from "./EmptyRig";
 
 export function MyRig() {
   const navigate = useNavigate();
-  const { rig } = useAppState();
+  const { user } = useAuth();
+  const [rig, setRig] = useState<RigItem[] | null>(null);
 
+  useEffect(() => {
+    if (!user) return;
+    fetchRig(user.id).then(setRig);
+  }, [user]);
+
+  if (rig === null) return <div className="min-h-screen bg-[#09090b]" />;
   if (rig.length === 0) return <EmptyRig />;
 
   return (
@@ -69,8 +79,8 @@ export function MyRig() {
           {rig.map((g) => (
             <div
               key={g.id}
-              onClick={() => navigate(`/app/gear/${g.id}`)}
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] cursor-pointer"
+              onClick={() => g.refId && navigate(`/app/gear/${g.refId}`)}
+              className={`flex items-center gap-3.5 p-3.5 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] ${g.refId ? "cursor-pointer" : ""}`}
             >
               <div className="w-[62px] h-[62px] rounded-xl overflow-hidden bg-[#27272a] flex-none">
                 <img src={g.image} alt="" className="w-full h-full object-cover" loading="lazy" />

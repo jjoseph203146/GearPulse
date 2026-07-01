@@ -63,7 +63,7 @@ export function Settings() {
                     {it.isToggle && (
                       <div
                         className="w-11 h-[26px] rounded-full relative flex-none transition-colors"
-                        style={{ background: on ? "#9333ea" : "#3f3f46" }}
+                        style={{ background: on ? "#2563eb" : "#3f3f46" }}
                       >
                         <div
                           className="absolute top-[3px] left-[3px] w-5 h-5 rounded-full bg-white transition-transform"

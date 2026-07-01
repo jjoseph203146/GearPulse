@@ -16,7 +16,7 @@ export function OnboardingHeader({ back, step, skipTo }: OnboardingHeaderProps) 
         {skipTo && (
           <span
             onClick={() => navigate(skipTo)}
-            className="text-[13px] font-semibold text-[#c084fc] cursor-pointer"
+            className="text-[13px] font-semibold text-[#60a5fa] cursor-pointer"
           >
             Skip
           </span>

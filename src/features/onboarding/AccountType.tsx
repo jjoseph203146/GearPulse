@@ -22,13 +22,13 @@ export function AccountType() {
               onClick={() => setTypes(sel ? [] : [t.id])}
               className={cn(
                 "flex items-start gap-4 p-[18px] rounded-2xl border-2 cursor-pointer transition-all",
-                sel ? "border-[#a855f7] bg-[rgba(168,85,247,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
+                sel ? "border-[#3b82f6] bg-[rgba(59,130,246,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
               )}
             >
               <div
                 className={cn(
                   "w-12 h-12 rounded-[13px] flex items-center justify-center text-2xl flex-none",
-                  sel ? "bg-[rgba(168,85,247,.2)]" : "bg-[#27272a]",
+                  sel ? "bg-[rgba(59,130,246,.2)]" : "bg-[#27272a]",
                 )}
               >
                 {t.emoji}

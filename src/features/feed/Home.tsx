@@ -1,93 +1,114 @@
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { feedData } from "./data";
-import { useAppState } from "@/hooks/useAppState";
+import logo from "@/assets/logo.png";
+import { PostCard } from "./PostCard";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchFeed, toggleLike, toggleSave } from "./data";
+import type { Post } from "@/types";
 import { EmptyFeed } from "./EmptyFeed";
+
+function FeedHeader({
+  onNotifications,
+  onMessages,
+  onSaved,
+}: {
+  onNotifications: () => void;
+  onMessages: () => void;
+  onSaved: () => void;
+}) {
+  return (
+    <div className="sticky top-0 z-[4] flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
+      <div className="flex items-center gap-2.5">
+        <div className="w-[34px] h-[34px] rounded-[10px] overflow-hidden">
+          <img src={logo} alt="GearPulse" className="w-full h-full object-cover" />
+        </div>
+        <span className="gp-word font-extrabold text-[21px] tracking-[-.02em]">GearPulse</span>
+      </div>
+      <div className="flex gap-1.5">
+        <div onClick={onSaved} className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer">
+          <MaterialIcon name="bookmark" size={22} color="#a1a1aa" />
+        </div>
+        <div onClick={onNotifications} className="w-10 h-10 rounded-xl flex items-center justify-center relative cursor-pointer">
+          <MaterialIcon name="notifications" size={24} color="#a1a1aa" />
+          <div className="absolute top-2 right-[9px] w-2 h-2 rounded-full bg-[#ec4899]" />
+        </div>
+        <div onClick={onMessages} className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer">
+          <MaterialIcon name="chat_bubble" size={24} color="#a1a1aa" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeedSkeleton() {
+  return (
+    <div className="gpfade max-w-screen-md mx-auto animate-pulse">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="border-b border-[#27272a] px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#27272a]" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-1/3 bg-[#27272a] rounded" />
+              <div className="h-2.5 w-1/4 bg-[#27272a] rounded" />
+            </div>
+          </div>
+          <div className="h-3 w-full bg-[#27272a] rounded mt-4" />
+          <div className="h-3 w-2/3 bg-[#27272a] rounded mt-2" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function Home() {
   const navigate = useNavigate();
-  const { likedPosts, toggleLike, savedPosts, toggleSave } = useAppState();
+  const { user } = useAuth();
+  const [posts, setPosts] = useState<Post[] | null>(null);
 
-  if (feedData.length === 0) return <EmptyFeed />;
+  useEffect(() => {
+    if (!user) return;
+    fetchFeed(user.id).then(setPosts);
+  }, [user]);
+
+  const handleToggleLike = useCallback(
+    (post: Post) => {
+      if (!user) return;
+      setPosts((prev) =>
+        prev?.map((p) =>
+          p.id === post.id
+            ? { ...p, liked_by_me: !p.liked_by_me, like_count: p.like_count + (p.liked_by_me ? -1 : 1) }
+            : p,
+        ) ?? null,
+      );
+      toggleLike(post.id, user.id, post.liked_by_me);
+    },
+    [user],
+  );
+
+  const handleToggleSave = useCallback(
+    (post: Post) => {
+      if (!user) return;
+      setPosts((prev) => prev?.map((p) => (p.id === post.id ? { ...p, saved_by_me: !p.saved_by_me } : p)) ?? null);
+      toggleSave(post.id, user.id, post.saved_by_me);
+    },
+    [user],
+  );
+
+  if (posts === null) return <FeedSkeleton />;
+  if (posts.length === 0) return <EmptyFeed />;
 
   return (
     <div className="gpfade max-w-screen-md mx-auto">
-      <div className="sticky top-0 z-[4] flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
-        <div className="flex items-center gap-2.5">
-          <div className="gp-grad w-[34px] h-[34px] rounded-[10px] flex items-center justify-center">
-            <MaterialIcon name="podcasts" size={21} color="#fff" filled />
-          </div>
-          <span className="gp-word font-extrabold text-[21px] tracking-[-.02em]">GearPulse</span>
-        </div>
-        <div className="flex gap-1.5">
-          <div
-            onClick={() => navigate("/app/notifications")}
-            className="w-10 h-10 rounded-xl flex items-center justify-center relative cursor-pointer"
-          >
-            <MaterialIcon name="notifications" size={24} color="#a1a1aa" />
-            <div className="absolute top-2 right-[9px] w-2 h-2 rounded-full bg-[#ec4899]" />
-          </div>
-          <div
-            onClick={() => navigate("/app/messages")}
-            className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer"
-          >
-            <MaterialIcon name="chat_bubble" size={24} color="#a1a1aa" />
-          </div>
-        </div>
-      </div>
+      <FeedHeader
+        onNotifications={() => navigate("/app/notifications")}
+        onMessages={() => navigate("/app/messages")}
+        onSaved={() => navigate("/app/saved")}
+      />
       <div className="flex flex-col">
-        {feedData.map((post) => {
-          const liked = likedPosts.includes(post.id);
-          const saved = savedPosts.includes(post.id);
-          return (
-            <div key={post.id} className="border-b border-[#27272a]">
-              <div className="flex items-start justify-between px-4 pt-4 pb-3">
-                <div className="flex items-start gap-3">
-                  <div className="gp-grad w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-none">
-                    {post.avatar}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-[5px]">
-                      <span className="text-[15px] font-bold">{post.author}</span>
-                      {post.verified && <MaterialIcon name="verified" size={16} color="#3b82f6" filled />}
-                    </div>
-                    <div className="text-[13px] text-[#71717a]">{post.username}</div>
-                    <div className="text-[11.5px] text-[#52525b] mt-px whitespace-nowrap">{post.meta}</div>
-                  </div>
-                </div>
-                <MaterialIcon name="more_horiz" size={22} color="#a1a1aa" className="cursor-pointer" />
-              </div>
-              <div className="px-4 pb-3">
-                <p className="text-[14.5px] leading-[1.5] text-[#f4f4f5]">{post.content}</p>
-              </div>
-              {post.img && (
-                <div className="w-full aspect-video bg-[#18181b] overflow-hidden">
-                  <img src={post.img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                </div>
-              )}
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-6">
-                  <div onClick={() => toggleLike(post.id)} className="flex items-center gap-[7px] cursor-pointer">
-                    <MaterialIcon name="favorite" size={23} color={liked ? "#ec4899" : "#a1a1aa"} filled={liked} />
-                    <span className="text-[13.5px] text-[#a1a1aa]">{post.likes + (liked ? 1 : 0)}</span>
-                  </div>
-                  <div className="flex items-center gap-[7px] cursor-pointer">
-                    <MaterialIcon name="mode_comment" size={23} color="#a1a1aa" />
-                    <span className="text-[13.5px] text-[#a1a1aa]">{post.comments}</span>
-                  </div>
-                  <MaterialIcon name="share" size={23} color="#a1a1aa" className="cursor-pointer" />
-                </div>
-                <MaterialIcon
-                  name="bookmark"
-                  size={23}
-                  color={saved ? "#a855f7" : "#a1a1aa"}
-                  filled={saved}
-                  onClick={() => toggleSave(post.id)}
-                />
-              </div>
-            </div>
-          );
-        })}
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} onToggleLike={handleToggleLike} onToggleSave={handleToggleSave} />
+        ))}
       </div>
     </div>
   );

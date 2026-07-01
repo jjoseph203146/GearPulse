@@ -23,13 +23,13 @@ export function Instruments() {
               onClick={() => toggleInstrument(i.id)}
               className={cn(
                 "flex flex-col items-center gap-3 py-6 px-4 rounded-2xl border-2 cursor-pointer text-center",
-                sel ? "border-[#a855f7] bg-[rgba(168,85,247,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
+                sel ? "border-[#3b82f6] bg-[rgba(59,130,246,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
               )}
             >
               <div
                 className={cn(
                   "w-14 h-14 rounded-2xl flex items-center justify-center text-[28px]",
-                  sel ? "bg-[rgba(168,85,247,.2)]" : "bg-[#27272a]",
+                  sel ? "bg-[rgba(59,130,246,.2)]" : "bg-[#27272a]",
                 )}
               >
                 {i.emoji}

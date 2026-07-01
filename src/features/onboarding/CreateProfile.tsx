@@ -125,7 +125,7 @@ export function CreateProfile() {
         disabled={!ready || submitting}
         className="mt-7 w-full h-[54px] border-none rounded-[14px] text-base font-bold cursor-pointer font-sans"
         style={{
-          background: ready && !submitting ? "linear-gradient(135deg,#9333ea,#db2777)" : "#27272a",
+          background: ready && !submitting ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "#27272a",
           color: ready && !submitting ? "#fff" : "#52525b",
         }}
       >

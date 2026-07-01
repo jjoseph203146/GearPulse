@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 function FullScreenLoader() {
   return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-      <div className="w-9 h-9 rounded-full border-2 border-[#3f3f46] border-t-[#a855f7] animate-spin" />
+      <div className="w-9 h-9 rounded-full border-2 border-[#3f3f46] border-t-[#3b82f6] animate-spin" />
     </div>
   );
 }

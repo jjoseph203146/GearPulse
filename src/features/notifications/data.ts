@@ -18,7 +18,7 @@ export const notifGroups: NotificationGroup[] = [
     label: "TODAY",
     items: [
       notif("🎸", "Sarah Chen", "liked your studio setup post", "2m ago", "favorite", "#ec4899", { unread: true, thumb: IMAGES.STUDIO }),
-      notif("🎹", "Mike Johnson", "started following you", "18m ago", "person_add", "#a855f7", { unread: true }),
+      notif("🎹", "Mike Johnson", "started following you", "18m ago", "person_add", "#3b82f6", { unread: true }),
       notif("🎼", "Yamaha", "dropped a new product — the CK88 stage keyboard", "1h ago", "campaign", "#f59e0b", { thumb: IMAGES.LIVE }),
     ],
   },

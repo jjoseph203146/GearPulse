@@ -1,14 +1,71 @@
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { spaceFeedData } from "./data";
 import { useAppState } from "@/hooks/useAppState";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { fetchSpaceById, joinSpace, leaveSpace } from "./data";
+import { fetchPostsBySpace, toggleLike, toggleSave } from "@/features/feed/data";
+import { PostCard } from "@/features/feed/PostCard";
+import type { Post, SpaceListItem } from "@/types";
 
 const TABS = ["Posts", "Gear", "News", "Creators"];
 
 export function SpaceDetail() {
   const navigate = useNavigate();
+  const { spaceId } = useParams<{ spaceId: string }>();
+  const { user } = useAuth();
   const { spaceTab, setSpaceTab } = useAppState();
+  const [space, setSpace] = useState<SpaceListItem | null | undefined>(undefined);
+  const [posts, setPosts] = useState<Post[] | null>(null);
+
+  const loadSpace = useCallback(async () => {
+    if (!user || !spaceId) return;
+    setSpace(await fetchSpaceById(spaceId, user.id));
+  }, [user, spaceId]);
+
+  useEffect(() => {
+    loadSpace();
+  }, [loadSpace]);
+
+  useEffect(() => {
+    if (!user || !spaceId || spaceTab !== "Posts") return;
+    fetchPostsBySpace(spaceId, user.id).then(setPosts);
+  }, [user, spaceId, spaceTab]);
+
+  async function handleToggleJoin() {
+    if (!user || !space) return;
+    const wasJoined = space.joined;
+    setSpace({ ...space, joined: !wasJoined, memberCount: space.memberCount + (wasJoined ? -1 : 1) });
+    if (wasJoined) await leaveSpace(space.id, user.id);
+    else await joinSpace(space.id, user.id);
+  }
+
+  async function handleToggleLike(post: Post) {
+    if (!user) return;
+    setPosts((prev) =>
+      prev?.map((p) =>
+        p.id === post.id ? { ...p, liked_by_me: !p.liked_by_me, like_count: p.like_count + (p.liked_by_me ? -1 : 1) } : p,
+      ) ?? prev,
+    );
+    await toggleLike(post.id, user.id, post.liked_by_me);
+  }
+
+  async function handleToggleSave(post: Post) {
+    if (!user) return;
+    setPosts((prev) => prev?.map((p) => (p.id === post.id ? { ...p, saved_by_me: !p.saved_by_me } : p)) ?? prev);
+    await toggleSave(post.id, user.id, post.saved_by_me);
+  }
+
+  if (space === undefined) return <div className="min-h-screen bg-[#09090b]" />;
+
+  if (space === null) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <p className="text-[#a1a1aa]">Space not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="gpfade max-w-screen-md mx-auto">
@@ -19,32 +76,33 @@ export function SpaceDetail() {
           <MaterialIcon name="share" size={22} color="#a1a1aa" className="cursor-pointer" />
         </div>
       </div>
-      <div
-        className="relative h-[150px]"
-        style={{ background: "linear-gradient(135deg,#2563eb,#0891b2)" }}
-      >
-        <div className="absolute inset-0 opacity-30">
-          <img
-            src="https://images.unsplash.com/photo-1563330232-57114bb0823c?w=800&q=80"
-            alt=""
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
+      <div className="relative h-[150px]" style={{ background: space.gradient ?? "linear-gradient(135deg,#7c3aed,#9333ea)" }}>
+        {space.image && (
+          <div className="absolute inset-0 opacity-30">
+            <img src={space.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        )}
       </div>
       <div className="px-4 -mt-12 relative">
         <div className="bg-[#18181b] rounded-2xl border border-[#27272a] p-[22px]">
-          <h1 className="text-[23px] font-extrabold tracking-[-.02em]">Keyboard Space</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[23px] font-extrabold tracking-[-.02em]">{space.name}</h1>
+            {!space.isPublic && <MaterialIcon name="lock" size={18} color="#71717a" />}
+          </div>
           <div className="flex items-center gap-[7px] text-[#a1a1aa] my-2.5">
             <MaterialIcon name="group" size={18} />
-            <span className="text-sm">12.5k members</span>
+            <span className="text-sm">{space.memberCount.toLocaleString()} members</span>
           </div>
-          <p className="text-sm leading-[1.55] text-[#d4d4d8]">
-            A community for keyboard enthusiasts, stage performers, and synth lovers. Share your setups, ask
-            questions, and discover new gear.
-          </p>
-          <button className="gp-grad mt-4 w-full h-12 rounded-xl border-none text-white text-[15px] font-bold cursor-pointer font-sans">
-            Join Space
+          <p className="text-sm leading-[1.55] text-[#d4d4d8]">{space.description}</p>
+          <button
+            onClick={handleToggleJoin}
+            className={cn(
+              "mt-4 w-full h-12 rounded-xl border-none text-white text-[15px] font-bold cursor-pointer font-sans",
+              !space.joined && "gp-grad",
+            )}
+            style={space.joined ? { background: "#27272a" } : undefined}
+          >
+            {space.joined ? "Leave Space" : "Join Space"}
           </button>
         </div>
         <div className="flex gap-1.5 bg-[#18181b] border border-[#27272a] rounded-xl p-[5px] mt-[22px]">
@@ -66,31 +124,17 @@ export function SpaceDetail() {
         </div>
         <div className="py-[18px] pb-6">
           {spaceTab === "Posts" && (
-            <div className="flex flex-col gap-4">
-              {spaceFeedData.map((post) => (
-                <div key={post.id} className="bg-[#18181b] rounded-2xl border border-[#27272a] p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="gp-grad w-10 h-10 rounded-full flex items-center justify-center text-xl flex-none">
-                      {post.avatar}
-                    </div>
-                    <div>
-                      <div className="text-[15px] font-bold">{post.author}</div>
-                      <div className="text-[11.5px] text-[#71717a]">{post.time}</div>
-                    </div>
-                  </div>
-                  <p className="text-[14.5px] leading-[1.5] text-[#f4f4f5]">{post.content}</p>
-                  {post.image && (
-                    <div className="w-full rounded-xl overflow-hidden mt-3">
-                      <img src={post.image} alt="" className="w-full block" loading="lazy" />
-                    </div>
-                  )}
-                  <div className="flex gap-4 mt-3 text-[#a1a1aa] text-[13.5px]">
-                    <span>{post.likes} likes</span>
-                    <span>{post.comments} comments</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <>
+              {posts === null && <p className="text-center text-sm text-[#52525b] py-8">Loading posts…</p>}
+              {posts?.length === 0 && (
+                <p className="text-center text-sm text-[#52525b] py-8">No posts in this space yet.</p>
+              )}
+              <div className="flex flex-col -mx-4">
+                {posts?.map((post) => (
+                  <PostCard key={post.id} post={post} onToggleLike={handleToggleLike} onToggleSave={handleToggleSave} />
+                ))}
+              </div>
+            </>
           )}
           {spaceTab === "Gear" && (
             <div className="text-center py-12 text-[#71717a] text-sm">Gear recommendations coming soon</div>

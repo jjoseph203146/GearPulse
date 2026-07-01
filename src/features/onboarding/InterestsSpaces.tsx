@@ -23,13 +23,13 @@ export function InterestsSpaces() {
               onClick={() => toggleInterest(sp.id)}
               className={cn(
                 "flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer",
-                sel ? "border-[#a855f7] bg-[rgba(168,85,247,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
+                sel ? "border-[#3b82f6] bg-[rgba(59,130,246,.1)]" : "border-[#27272a] bg-[rgba(24,24,27,.5)]",
               )}
             >
               <div
                 className={cn(
                   "w-[46px] h-[46px] rounded-[13px] flex items-center justify-center text-[22px] flex-none",
-                  sel ? "bg-[rgba(168,85,247,.2)]" : "bg-[#27272a]",
+                  sel ? "bg-[rgba(59,130,246,.2)]" : "bg-[#27272a]",
                 )}
               >
                 {sp.emoji}

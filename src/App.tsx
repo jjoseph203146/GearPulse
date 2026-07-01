@@ -12,6 +12,7 @@ import { FollowBrands } from "@/features/onboarding/FollowBrands";
 import { CreateProfile } from "@/features/onboarding/CreateProfile";
 
 import { Home } from "@/features/feed/Home";
+import { SavedPosts } from "@/features/feed/SavedPosts";
 import { Spaces } from "@/features/spaces/Spaces";
 import { Search } from "@/features/search/Search";
 import { Messages } from "@/features/messages/Messages";
@@ -68,6 +69,7 @@ export default function App() {
         <Route element={<RequireOnboarding />}>
           <Route path="/app" element={<MainNavLayout />}>
             <Route index element={<Home />} />
+            <Route path="saved" element={<SavedPosts />} />
             <Route path="spaces" element={<Spaces />} />
             <Route path="spaces/:spaceId" element={<SpaceDetail />} />
             <Route path="search" element={<Search />} />

@@ -38,7 +38,7 @@ export function SignUp() {
   if (checkEmail) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <MaterialIcon name="mark_email_read" size={48} color="#c084fc" />
+        <MaterialIcon name="mark_email_read" size={48} color="#60a5fa" />
         <h2 className="text-2xl font-extrabold mt-4">Check your email</h2>
         <p className="text-[15px] text-[#a1a1aa] mt-2 max-w-[300px]">
           We sent a confirmation link to {email}. Confirm it, then log in to continue.
@@ -88,7 +88,7 @@ export function SignUp() {
         disabled={!ready || submitting}
         className="mt-7 w-full h-[54px] border-none rounded-[14px] text-base font-bold cursor-pointer font-sans"
         style={{
-          background: ready && !submitting ? "linear-gradient(135deg,#9333ea,#db2777)" : "#27272a",
+          background: ready && !submitting ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "#27272a",
           color: ready && !submitting ? "#fff" : "#52525b",
         }}
       >
@@ -96,7 +96,7 @@ export function SignUp() {
       </button>
       <p className="text-[13px] text-[#71717a] text-center mt-4">
         Already have an account?{" "}
-        <span className="text-[#c084fc] font-semibold cursor-pointer" onClick={() => navigate("/login")}>
+        <span className="text-[#60a5fa] font-semibold cursor-pointer" onClick={() => navigate("/login")}>
           Log in
         </span>
       </p>

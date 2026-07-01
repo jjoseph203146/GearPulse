@@ -34,7 +34,7 @@ export function MainNavLayout() {
         <div
           onClick={() => navigate("/app/create-post")}
           className="gp-grad fixed right-[18px] bottom-[92px] w-14 h-14 rounded-[18px] flex items-center justify-center cursor-pointer z-50"
-          style={{ boxShadow: "0 12px 30px rgba(147,51,234,.45)" }}
+          style={{ boxShadow: "0 12px 30px rgba(37,99,235,.45)" }}
         >
           <MaterialIcon name="edit" size={28} color="#fff" />
         </div>
@@ -43,7 +43,7 @@ export function MainNavLayout() {
       <div className="sticky bottom-0 flex justify-around items-center px-2 pt-2.5 pb-[26px] bg-[#18181b] border-t border-[#27272a] max-w-screen-md mx-auto w-full">
         {NAV_ITEMS.map((n) => {
           const active = n.group === group;
-          const color = active ? "#a855f7" : "#71717a";
+          const color = active ? "#3b82f6" : "#71717a";
           return (
             <div
               key={n.group}

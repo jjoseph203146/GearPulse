@@ -1,28 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { ArrowLeft, Search, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NoSearchResults } from "@/components/NoSearchResults";
-import { gearCatalog, gearCategories, type GearItem } from "@/features/gear/data";
-
-const browseCategories = gearCategories.filter((c) => c.id !== "all");
+import { GearCardSkeleton } from "@/components/Skeleton";
+import { fetchGearCategories, fetchPopularGear, searchGear } from "@/features/gear/data";
+import type { GearCategory, GearListItem } from "@/types";
 
 export function GearSearchScreen() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [categories, setCategories] = useState<GearCategory[]>([]);
+  const [popular, setPopular] = useState<GearListItem[] | null>(null);
+  const [results, setResults] = useState<GearListItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = gearCatalog.filter((item) => {
-    const matchesQuery =
-      query.length === 0 ||
-      item.name.toLowerCase().includes(query.toLowerCase()) ||
-      item.brand.toLowerCase().includes(query.toLowerCase()) ||
-      item.category.toLowerCase().includes(query.toLowerCase());
-    const matchesCategory = activeCategory === "all" || item.categoryId === activeCategory;
-    return matchesQuery && matchesCategory;
-  });
+  useEffect(() => {
+    fetchGearCategories().then(setCategories);
+    fetchPopularGear().then(setPopular);
+  }, []);
 
   const showBrowse = query.length === 0 && activeCategory === "all";
+
+  useEffect(() => {
+    if (showBrowse) {
+      setResults(null);
+      return;
+    }
+    setLoading(true);
+    const handle = setTimeout(() => {
+      searchGear(query, activeCategory)
+        .then(setResults)
+        .finally(() => setLoading(false));
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [query, activeCategory, showBrowse]);
+
+  const browseCategories = categories.filter((c) => c.id !== "all");
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -47,7 +62,7 @@ export function GearSearchScreen() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search keyboards, guitars, microphones, interfaces..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
               autoFocus
             />
           </div>
@@ -60,7 +75,7 @@ export function GearSearchScreen() {
               onClick={() => setActiveCategory("all")}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                 activeCategory === "all"
-                  ? "bg-purple-600 text-white"
+                  ? "bg-blue-600 text-white"
                   : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600"
               }`}
             >
@@ -72,7 +87,7 @@ export function GearSearchScreen() {
                 onClick={() => setActiveCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                   activeCategory === cat.id
-                    ? "bg-purple-600 text-white"
+                    ? "bg-blue-600 text-white"
                     : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600"
                 }`}
               >
@@ -104,20 +119,26 @@ export function GearSearchScreen() {
             {/* Featured / trending gear */}
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Popular on GearPulse</p>
             <div className="space-y-2">
-              {gearCatalog.slice(0, 5).map((item) => (
-                <GearResultCard key={item.id} item={item} navigate={navigate} />
-              ))}
+              {popular === null
+                ? Array.from({ length: 3 }).map((_, i) => <GearCardSkeleton key={i} />)
+                : popular.map((item) => <GearResultCard key={item.id} item={item} navigate={navigate} />)}
             </div>
           </>
         ) : (
           <>
-            {filtered.length > 0 ? (
+            {loading || results === null ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <GearCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : results.length > 0 ? (
               <>
                 <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
-                  {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+                  {results.length} result{results.length !== 1 ? "s" : ""}
                 </p>
                 <div className="space-y-2">
-                  {filtered.map((item) => (
+                  {results.map((item) => (
                     <GearResultCard key={item.id} item={item} navigate={navigate} />
                   ))}
                 </div>
@@ -132,18 +153,18 @@ export function GearSearchScreen() {
         <div className="mt-8 mb-4">
           <div
             onClick={() => navigate("/app/gear/custom")}
-            className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-zinc-700 hover:border-purple-600 hover:bg-purple-600/5 transition-all cursor-pointer group"
+            className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-zinc-700 hover:border-blue-600 hover:bg-blue-600/5 transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-zinc-800 group-hover:bg-purple-600/20 flex items-center justify-center transition-colors">
-                <Plus className="w-5 h-5 text-zinc-400 group-hover:text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 group-hover:bg-blue-600/20 flex items-center justify-center transition-colors">
+                <Plus className="w-5 h-5 text-zinc-400 group-hover:text-blue-400" />
               </div>
               <div>
                 <p className="font-medium text-sm text-zinc-200">Can't find your gear?</p>
                 <p className="text-xs text-zinc-500">Add custom equipment to your rig</p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-purple-400 transition-colors" />
+            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400 transition-colors" />
           </div>
         </div>
       </div>
@@ -151,7 +172,7 @@ export function GearSearchScreen() {
   );
 }
 
-function GearResultCard({ item, navigate }: { item: GearItem; navigate: NavigateFunction }) {
+function GearResultCard({ item, navigate }: { item: GearListItem; navigate: NavigateFunction }) {
   return (
     <div
       onClick={() => navigate(`/app/gear/${item.id}`)}
@@ -169,8 +190,8 @@ function GearResultCard({ item, navigate }: { item: GearItem; navigate: Navigate
         <p className="text-xs text-zinc-600 mt-0.5">{item.ownersCount.toLocaleString()} owners</p>
       </div>
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
-        <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-600/40 flex items-center justify-center">
-          <Plus className="w-4 h-4 text-purple-400" />
+        <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-600/40 flex items-center justify-center">
+          <Plus className="w-4 h-4 text-blue-400" />
         </div>
       </div>
     </div>

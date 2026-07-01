@@ -1,18 +1,77 @@
-import type { SpaceCard, SpacePost } from "@/types";
-import { IMAGES } from "@/lib/images";
+import { supabase } from "@/lib/supabase";
+import type { SpaceListItem } from "@/types";
 
-export const spacesGridData: SpaceCard[] = [
-  { id: "keyboard", emoji: "🎹", name: "Keyboard Space", desc: "New keyboards, stage setups, performances", members: "12.5k", grad: "linear-gradient(135deg,#2563eb,#0891b2)", image: IMAGES.KEYBOARD },
-  { id: "drum", emoji: "🥁", name: "Drum Space", desc: "Drummers, kits, techniques, gear", members: "8.2k", grad: "linear-gradient(135deg,#ea580c,#dc2626)", image: IMAGES.DRUMS },
-  { id: "guitar", emoji: "🎸", name: "Guitar Space", desc: "Guitars, pedals, amps", members: "15.3k", grad: "linear-gradient(135deg,#9333ea,#db2777)", image: IMAGES.GUITAR },
-  { id: "studio", emoji: "🎧", name: "Studio Space", desc: "Recording equipment and studio builds", members: "9.7k", grad: "linear-gradient(135deg,#059669,#0d9488)", image: IMAGES.STUDIO },
-  { id: "synth", emoji: "🎛️", name: "Synth Space", desc: "Synthesizers and electronic music", members: "11.2k", grad: "linear-gradient(135deg,#7c3aed,#9333ea)", image: IMAGES.KEYBOARD },
-  { id: "live", emoji: "📡", name: "Live Sound Space", desc: "Mixing consoles, speakers, touring", members: "6.4k", grad: "linear-gradient(135deg,#ca8a04,#ea580c)", image: IMAGES.LIVE },
-  { id: "worship", emoji: "⛪", name: "Worship Space", desc: "Worship teams and setups", members: "7.8k", grad: "linear-gradient(135deg,#4f46e5,#2563eb)", image: IMAGES.WORSHIP },
-  { id: "production", emoji: "💻", name: "Music Production Space", desc: "DAWs, plugins, production", members: "13.9k", grad: "linear-gradient(135deg,#db2777,#e11d48)", image: IMAGES.PROD },
-];
+type RawSpace = {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  gradient: string | null;
+  image_url: string | null;
+  is_public: boolean;
+  created_by: string | null;
+};
 
-export const spaceFeedData: SpacePost[] = [
-  { id: 1, author: "Mike Johnson", avatar: "👨‍🎤", content: "Just got the new Nord Stage 4. The piano sounds are incredible!", image: IMAGES.KEYBOARD, likes: 234, comments: 18, time: "3h ago" },
-  { id: 2, author: "Sarah Chen", avatar: "🎹", content: "Looking for recommendations for a good MIDI controller under $500", image: null, likes: 89, comments: 42, time: "5h ago" },
-];
+async function withMembership(rows: RawSpace[], userId: string): Promise<SpaceListItem[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+  const { data: members } = await supabase.from("space_members").select("space_id,user_id").in("space_id", ids);
+  const counts = new Map<string, number>();
+  const joined = new Set<string>();
+  for (const m of members ?? []) {
+    counts.set(m.space_id, (counts.get(m.space_id) ?? 0) + 1);
+    if (m.user_id === userId) joined.add(m.space_id);
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    emoji: r.emoji,
+    description: r.description,
+    gradient: r.gradient,
+    image: r.image_url,
+    isPublic: r.is_public,
+    isMine: r.created_by === userId,
+    joined: joined.has(r.id),
+    memberCount: counts.get(r.id) ?? 0,
+  }));
+}
+
+export async function fetchSpaces(userId: string): Promise<SpaceListItem[]> {
+  const { data, error } = await supabase
+    .from("spaces")
+    .select("id,name,emoji,description,gradient,image_url,is_public,created_by")
+    .order("created_by", { ascending: true, nullsFirst: true })
+    .order("name");
+  if (error) throw error;
+  return withMembership((data ?? []) as RawSpace[], userId);
+}
+
+export async function fetchSpaceById(spaceId: string, userId: string): Promise<SpaceListItem | null> {
+  const { data, error } = await supabase
+    .from("spaces")
+    .select("id,name,emoji,description,gradient,image_url,is_public,created_by")
+    .eq("id", spaceId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const [space] = await withMembership([data as RawSpace], userId);
+  return space;
+}
+
+export async function joinSpace(spaceId: string, userId: string) {
+  const { error } = await supabase
+    .from("space_members")
+    .upsert({ space_id: spaceId, user_id: userId }, { onConflict: "space_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+export async function leaveSpace(spaceId: string, userId: string) {
+  const { error } = await supabase.from("space_members").delete().eq("space_id", spaceId).eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function createSpace(name: string, isPublic: boolean): Promise<string> {
+  const { data, error } = await supabase.rpc("create_user_space", { space_name: name, space_is_public: isPublic });
+  if (error) throw error;
+  return data as string;
+}

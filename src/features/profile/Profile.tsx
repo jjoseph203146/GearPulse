@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { useAppState } from "@/hooks/useAppState";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchRig } from "@/features/gear/data";
+import type { RigItem } from "@/types";
 import { cn } from "@/lib/utils";
 
 const POST_GRID = [
@@ -13,7 +17,14 @@ const TABS = ["Posts", "My Rig", "Awards"];
 
 export function Profile() {
   const navigate = useNavigate();
-  const { profileTab, setProfileTab, rig } = useAppState();
+  const { profileTab, setProfileTab } = useAppState();
+  const { user } = useAuth();
+  const [rig, setRig] = useState<RigItem[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchRig(user.id).then(setRig);
+  }, [user]);
 
   return (
     <div className="gpfade max-w-screen-md mx-auto">
@@ -103,7 +114,7 @@ export function Profile() {
               <span className="text-[13.5px] text-[#71717a] whitespace-nowrap">{rig.length} pieces of gear</span>
               <span
                 onClick={() => navigate("/app/gear/search")}
-                className="flex items-center gap-[5px] text-[12.5px] font-semibold text-[#c084fc] cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-[5px] text-[12.5px] font-semibold text-[#60a5fa] cursor-pointer whitespace-nowrap"
               >
                 <MaterialIcon name="add" size={15} />
                 Add gear
@@ -133,7 +144,7 @@ export function Profile() {
             </div>
             <button
               onClick={() => navigate("/app/profile/my-rig")}
-              className="w-full p-3 rounded-xl bg-transparent border border-[#27272a] text-[#c084fc] text-[13.5px] font-semibold cursor-pointer font-sans"
+              className="w-full p-3 rounded-xl bg-transparent border border-[#27272a] text-[#60a5fa] text-[13.5px] font-semibold cursor-pointer font-sans"
             >
               View full rig →
             </button>

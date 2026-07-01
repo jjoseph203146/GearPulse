@@ -40,38 +40,48 @@ export interface Brand {
   emoji: string;
 }
 
-export interface FeedPost {
-  id: number;
-  author: string;
-  username: string;
-  verified: boolean;
-  avatar: string;
-  content: string;
-  img: string | null;
-  likes: number;
-  comments: number;
-  meta: string;
-}
-
-export interface SpaceCard {
+export interface PostAuthor {
   id: string;
-  emoji: string;
-  name: string;
-  desc: string;
-  members: string;
-  grad: string;
-  image: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  avatar_emoji: string | null;
+  verified: boolean;
 }
 
-export interface SpacePost {
-  id: number;
-  author: string;
-  avatar: string;
+export interface Post {
+  id: string;
   content: string;
+  image_url: string | null;
+  created_at: string;
+  space_id: string | null;
+  author_id: string;
+  author: PostAuthor;
+  like_count: number;
+  comment_count: number;
+  liked_by_me: boolean;
+  saved_by_me: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  content: string;
+  created_at: string;
+  author: PostAuthor;
+}
+
+export interface SpaceListItem {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  gradient: string | null;
   image: string | null;
-  likes: number;
-  comments: number;
-  time: string;
+  isPublic: boolean;
+  isMine: boolean;
+  joined: boolean;
+  memberCount: number;
 }
 
 export interface TrendingGear {
@@ -110,11 +120,13 @@ export interface Chat {
 
 export interface RigItem {
   id: string;
+  refId: string | null;
   name: string;
   type: string;
   emoji: string;
   year: string;
   image: string;
+  isCustom: boolean;
 }
 
 export interface NotificationItem {
@@ -155,7 +167,13 @@ export interface GearSpec {
   value: string;
 }
 
-export interface GearItem {
+export interface GearCategory {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+export interface GearListItem {
   id: string;
   name: string;
   brand: string;
@@ -163,11 +181,21 @@ export interface GearItem {
   categoryId: string;
   categoryEmoji: string;
   image: string;
+  ownersCount: number;
+}
+
+export interface GearDetail extends GearListItem {
   description: string;
   specs: GearSpec[];
-  ownersCount: number;
-  postsCount: number;
   rating: number;
   reviewsCount: number;
-  relatedIds: string[];
+  related: GearListItem[];
+}
+
+export interface GearReview {
+  id: string;
+  rating: number;
+  text: string | null;
+  created_at: string;
+  author: PostAuthor;
 }

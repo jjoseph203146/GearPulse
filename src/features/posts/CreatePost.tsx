@@ -28,7 +28,7 @@ export function CreatePost() {
           <div>
             <div className="text-[15px] font-bold">Jacob Rivera</div>
             <div className="inline-flex items-center gap-[5px] mt-1 px-[11px] py-1 rounded-full bg-[#27272a] border border-[#3f3f46] text-[11.5px] text-[#d4d4d8] cursor-pointer">
-              <MaterialIcon name="tag" size={14} color="#c084fc" />
+              <MaterialIcon name="tag" size={14} color="#60a5fa" />
               Studio Space
               <MaterialIcon name="expand_more" size={15} color="#71717a" />
             </div>
@@ -51,7 +51,7 @@ export function CreatePost() {
           onClick={() => navigate("/app/gear/search")}
           className="flex items-center gap-3 mt-4 p-3.5 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] cursor-pointer"
         >
-          <MaterialIcon name="inventory_2" size={22} color="#c084fc" />
+          <MaterialIcon name="inventory_2" size={22} color="#60a5fa" />
           <div className="flex-1">
             <div className="text-sm font-semibold">Tag gear from your rig</div>
             <div className="text-[11.5px] text-[#71717a] mt-px">Let others discover what you use</div>

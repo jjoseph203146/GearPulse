@@ -43,7 +43,7 @@ export function Search() {
         {filteredGear.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <MaterialIcon name="trending_up" size={21} color="#a855f7" />
+            <MaterialIcon name="trending_up" size={21} color="#3b82f6" />
             <h2 className="text-[19px] font-extrabold">Trending Gear</h2>
           </div>
           <div className="flex flex-col gap-3">

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import logo from "@/assets/logo.png";
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -11,12 +12,12 @@ export function Welcome() {
     >
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="relative mb-8">
-          <div className="absolute -inset-[30px] bg-[rgba(168,85,247,.22)] blur-[50px] rounded-full" />
+          <div className="absolute -inset-[30px] bg-[rgba(59,130,246,.22)] blur-[50px] rounded-full" />
           <div
-            className="gp-grad relative w-[108px] h-[108px] rounded-[30px] flex items-center justify-center"
-            style={{ boxShadow: "0 20px 50px rgba(147,51,234,.45)" }}
+            className="relative w-[108px] h-[108px] rounded-[30px] overflow-hidden"
+            style={{ boxShadow: "0 20px 50px rgba(37,99,235,.45)" }}
           >
-            <MaterialIcon name="podcasts" size={56} color="#fff" filled />
+            <img src={logo} alt="GearPulse" className="w-full h-full object-cover" />
           </div>
         </div>
         <h1 className="gp-word text-[46px] font-extrabold tracking-[-.02em]">GearPulse</h1>
@@ -28,11 +29,11 @@ export function Welcome() {
         </p>
         <div className="flex flex-col gap-3 w-full max-w-[320px] mt-8">
           <div className="flex items-center gap-3 bg-[rgba(24,24,27,.5)] border border-[#27272a] rounded-[14px] p-[15px]">
-            <MaterialIcon name="music_note" size={21} color="#c084fc" />
+            <MaterialIcon name="music_note" size={21} color="#60a5fa" />
             <span className="text-sm text-[#d4d4d8]">Connect with music professionals</span>
           </div>
           <div className="flex items-center gap-3 bg-[rgba(24,24,27,.5)] border border-[#27272a] rounded-[14px] p-[15px]">
-            <MaterialIcon name="auto_awesome" size={21} color="#f472b6" />
+            <MaterialIcon name="auto_awesome" size={21} color="#38bdf8" />
             <span className="text-sm text-[#d4d4d8]">Discover the latest gear</span>
           </div>
         </div>
@@ -41,7 +42,7 @@ export function Welcome() {
         <button
           onClick={() => navigate("/signup")}
           className="gp-grad w-full h-[54px] border-none rounded-[14px] text-white text-base font-bold cursor-pointer font-sans"
-          style={{ boxShadow: "0 12px 30px rgba(147,51,234,.3)" }}
+          style={{ boxShadow: "0 12px 30px rgba(37,99,235,.3)" }}
         >
           Create Account
         </button>

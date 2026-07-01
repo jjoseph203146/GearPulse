@@ -1,16 +1,22 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { AvatarUpload } from "@/components/AvatarUpload";
-import { useAppState } from "@/hooks/useAppState";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchRig } from "@/features/gear/data";
 
 const inputClass =
   "w-full h-12 rounded-[11px] bg-[#18181b] border border-[#27272a] text-[#fafafa] px-4 text-[15px] outline-none placeholder:text-[#52525b]";
 
 export function EditProfile() {
   const navigate = useNavigate();
-  const { rig } = useAppState();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [rigCount, setRigCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchRig(user.id).then((rig) => setRigCount(rig.length));
+  }, [user]);
 
   return (
     <div className="flex flex-col min-h-screen max-w-screen-md mx-auto">
@@ -67,10 +73,10 @@ export function EditProfile() {
           onClick={() => navigate("/app/profile/my-rig")}
           className="flex items-center gap-3 mt-[22px] p-4 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] cursor-pointer"
         >
-          <MaterialIcon name="inventory_2" size={22} color="#c084fc" />
+          <MaterialIcon name="inventory_2" size={22} color="#60a5fa" />
           <div className="flex-1">
             <div className="text-[14.5px] font-semibold">Edit My Rig</div>
-            <div className="text-[11.5px] text-[#71717a] mt-px">{rig.length} pieces of gear</div>
+            <div className="text-[11.5px] text-[#71717a] mt-px">{rigCount} pieces of gear</div>
           </div>
           <MaterialIcon name="chevron_right" size={20} color="#3f3f46" />
         </div>

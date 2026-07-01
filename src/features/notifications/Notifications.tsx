@@ -12,7 +12,7 @@ export function Notifications() {
           <MaterialIcon name="arrow_back" size={25} color="#a1a1aa" className="cursor-pointer" onClick={() => navigate("/app")} />
           <h1 className="text-xl font-extrabold tracking-[-.02em]">Notifications</h1>
         </div>
-        <span className="text-[12.5px] font-semibold text-[#c084fc] cursor-pointer">Mark all read</span>
+        <span className="text-[12.5px] font-semibold text-[#60a5fa] cursor-pointer">Mark all read</span>
       </div>
       {notifGroups.map((grp) => (
         <div key={grp.label}>
@@ -21,7 +21,7 @@ export function Notifications() {
             <div
               key={i}
               className="flex items-start gap-3.5 px-4 py-3.5 border-b border-[#27272a] cursor-pointer"
-              style={{ background: n.unread ? "rgba(168,85,247,.06)" : "transparent" }}
+              style={{ background: n.unread ? "rgba(59,130,246,.06)" : "transparent" }}
             >
               <div className="relative flex-none">
                 <div className="gp-grad w-[46px] h-[46px] rounded-full flex items-center justify-center text-[23px]">
@@ -45,7 +45,7 @@ export function Notifications() {
                   <img src={n.thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
                 </div>
               )}
-              {n.unread && <div className="w-[9px] h-[9px] rounded-full bg-[#a855f7] flex-none mt-[18px]" />}
+              {n.unread && <div className="w-[9px] h-[9px] rounded-full bg-[#3b82f6] flex-none mt-[18px]" />}
             </div>
           ))}
         </div>

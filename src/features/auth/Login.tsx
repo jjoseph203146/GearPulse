@@ -66,7 +66,7 @@ export function Login() {
         disabled={!ready || submitting}
         className="mt-7 w-full h-[54px] border-none rounded-[14px] text-base font-bold cursor-pointer font-sans"
         style={{
-          background: ready && !submitting ? "linear-gradient(135deg,#9333ea,#db2777)" : "#27272a",
+          background: ready && !submitting ? "linear-gradient(135deg,#2563eb,#3b82f6)" : "#27272a",
           color: ready && !submitting ? "#fff" : "#52525b",
         }}
       >
@@ -74,7 +74,7 @@ export function Login() {
       </button>
       <p className="text-[13px] text-[#71717a] text-center mt-4">
         Don't have an account?{" "}
-        <span className="text-[#c084fc] font-semibold cursor-pointer" onClick={() => navigate("/signup")}>
+        <span className="text-[#60a5fa] font-semibold cursor-pointer" onClick={() => navigate("/signup")}>
           Sign up
         </span>
       </p>

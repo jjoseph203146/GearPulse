@@ -32,7 +32,7 @@ export function Messages() {
                 {c.avatar}
               </div>
               {c.unread && (
-                <span className="absolute top-0 right-0 w-[15px] h-[15px] rounded-full bg-[#a855f7] border-[2.5px] border-[#09090b]" />
+                <span className="absolute top-0 right-0 w-[15px] h-[15px] rounded-full bg-[#3b82f6] border-[2.5px] border-[#09090b]" />
               )}
             </div>
             <div className="flex-1 min-w-0">

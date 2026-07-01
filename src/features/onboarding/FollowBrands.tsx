@@ -41,8 +41,8 @@ export function FollowBrands() {
                 onClick={() => toggleFollow(b.id)}
                 className="h-[38px] px-[18px] rounded-[10px] text-[13.5px] font-bold cursor-pointer font-sans"
                 style={{
-                  border: `1px solid ${f ? "#3f3f46" : "#9333ea"}`,
-                  background: f ? "transparent" : "#9333ea",
+                  border: `1px solid ${f ? "#3f3f46" : "#2563eb"}`,
+                  background: f ? "transparent" : "#2563eb",
                   color: f ? "#a1a1aa" : "#fff",
                 }}
               >

@@ -1,45 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Share2, Users, MessageSquare, Star, Check, ChevronRight, Package } from "lucide-react";
+import { ArrowLeft, Share2, Users, Star, Check, ChevronRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { gearCatalog, communityPostImages } from "@/features/gear/data";
-import { useAppState } from "@/hooks/useAppState";
+import { addGearToRig, fetchGearById, fetchReviews, isGearInRig, submitReview } from "@/features/gear/data";
+import { useAuth } from "@/hooks/useAuth";
+import type { GearDetail, GearReview, GearSpec } from "@/types";
 
-const mockReviews = [
-  {
-    id: 1,
-    user: "Mark P.",
-    avatar: "🎹",
-    rating: 5,
-    text: "Best keyboard I've ever played. The action is incredible and the sounds are studio quality — worth every penny.",
-    date: "2 weeks ago",
-  },
-  {
-    id: 2,
-    user: "Sarah K.",
-    avatar: "🎸",
-    rating: 5,
-    text: "Been using this live for 6 months and it never lets me down. The build quality is exceptional.",
-    date: "1 month ago",
-  },
-  {
-    id: 3,
-    user: "DJ Mike",
-    avatar: "🎧",
-    rating: 4,
-    text: "Amazing quality overall. My only complaint is the weight, but that's expected at this level.",
-    date: "3 months ago",
-  },
-];
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days < 1) return "today";
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 export function GearProductScreen() {
   const navigate = useNavigate();
   const { gearId } = useParams<{ gearId: string }>();
-  const { addToRig, gearAdded } = useAppState();
+  const { user } = useAuth();
+  const [gear, setGear] = useState<GearDetail | null | undefined>(undefined);
+  const [reviews, setReviews] = useState<GearReview[]>([]);
   const [added, setAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "posts" | "reviews">("details");
+  const [myRating, setMyRating] = useState(0);
+  const [myText, setMyText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
-  const gear = gearCatalog.find((g) => g.id === gearId);
+  useEffect(() => {
+    if (!gearId) return;
+    fetchGearById(gearId).then(setGear);
+    fetchReviews(gearId).then(setReviews);
+  }, [gearId]);
+
+  useEffect(() => {
+    if (!user || !gearId) return;
+    isGearInRig(user.id, gearId).then(setAdded);
+  }, [user, gearId]);
+
+  if (gear === undefined) {
+    return <div className="min-h-screen bg-zinc-950" />;
+  }
 
   if (!gear) {
     return (
@@ -55,14 +56,27 @@ export function GearProductScreen() {
     );
   }
 
-  const relatedGear = gearCatalog.filter((g) => gear.relatedIds.includes(g.id)).slice(0, 3);
-
-  function handleAddToRig() {
+  async function handleAddToRig() {
+    if (!user || !gear) return;
     setAdded(true);
-    addToRig(gear!.id);
+    await addGearToRig(user.id, gear.id);
     setTimeout(() => {
       navigate("/app/profile/my-rig");
     }, 1200);
+  }
+
+  async function handleSubmitReview() {
+    if (!user || !gearId || myRating === 0 || submittingReview) return;
+    setSubmittingReview(true);
+    try {
+      await submitReview(gearId, user.id, myRating, myText.trim());
+      setReviews(await fetchReviews(gearId));
+      setGear(await fetchGearById(gearId));
+      setMyRating(0);
+      setMyText("");
+    } finally {
+      setSubmittingReview(false);
+    }
   }
 
   function renderStars(rating: number) {
@@ -73,8 +87,6 @@ export function GearProductScreen() {
       />
     ));
   }
-
-  const isAdded = added || gearAdded;
 
   return (
     <div className="min-h-screen bg-zinc-950 pb-28">
@@ -113,7 +125,7 @@ export function GearProductScreen() {
           {/* Stats row */}
           <div className="flex items-center gap-4 py-3 border-t border-b border-zinc-800 my-3">
             <div className="flex items-center gap-1.5 flex-1">
-              <Users className="w-4 h-4 text-purple-400" />
+              <Users className="w-4 h-4 text-blue-400" />
               <div>
                 <p className="text-sm font-semibold text-white">{gear.ownersCount.toLocaleString()}</p>
                 <p className="text-xs text-zinc-500">owners</p>
@@ -121,17 +133,9 @@ export function GearProductScreen() {
             </div>
             <div className="w-px h-8 bg-zinc-800" />
             <div className="flex items-center gap-1.5 flex-1">
-              <MessageSquare className="w-4 h-4 text-blue-400" />
-              <div>
-                <p className="text-sm font-semibold text-white">{gear.postsCount.toLocaleString()}</p>
-                <p className="text-xs text-zinc-500">posts</p>
-              </div>
-            </div>
-            <div className="w-px h-8 bg-zinc-800" />
-            <div className="flex items-center gap-1.5 flex-1">
               <div className="flex gap-0.5">{renderStars(gear.rating)}</div>
               <div>
-                <p className="text-sm font-semibold text-white">{gear.rating}</p>
+                <p className="text-sm font-semibold text-white">{gear.rating || "—"}</p>
                 <p className="text-xs text-zinc-500">{gear.reviewsCount.toLocaleString()} reviews</p>
               </div>
             </div>
@@ -161,7 +165,8 @@ export function GearProductScreen() {
             <div className="p-4 border-b border-zinc-800">
               <h3 className="font-semibold text-sm text-zinc-300">Specifications</h3>
             </div>
-            {gear.specs.map((spec, i) => (
+            {gear.specs.length === 0 && <p className="p-4 text-sm text-zinc-600">No specs listed yet.</p>}
+            {gear.specs.map((spec: GearSpec, i: number) => (
               <div
                 key={i}
                 className={`flex items-center justify-between px-4 py-3 ${
@@ -177,16 +182,7 @@ export function GearProductScreen() {
 
         {activeTab === "posts" && (
           <div className="mb-4">
-            <div className="grid grid-cols-3 gap-2">
-              {communityPostImages.map((img, i) => (
-                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-zinc-900">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-xs text-zinc-600 mt-3">
-              {gear.postsCount.toLocaleString()} community posts featuring this gear
-            </p>
+            <p className="text-center text-sm text-zinc-600 py-8">Community posts featuring this gear coming soon</p>
           </div>
         )}
 
@@ -195,51 +191,73 @@ export function GearProductScreen() {
             {/* Rating summary */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-4">
               <div className="text-center">
-                <p className="text-4xl font-bold text-white">{gear.rating}</p>
+                <p className="text-4xl font-bold text-white">{gear.rating || "—"}</p>
                 <div className="flex justify-center gap-0.5 my-1">{renderStars(gear.rating)}</div>
                 <p className="text-xs text-zinc-500">{gear.reviewsCount.toLocaleString()} reviews</p>
               </div>
-              <div className="flex-1 space-y-1.5">
-                {[5, 4, 3, 2, 1].map((star) => {
-                  const pct = star === 5 ? 72 : star === 4 ? 18 : star === 3 ? 6 : star === 2 ? 2 : 2;
-                  return (
-                    <div key={star} className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500 w-3">{star}</span>
-                      <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
 
-            {mockReviews.map((review) => (
+            {/* Write a review */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+              <p className="text-sm font-semibold text-white mb-2">Write a review</p>
+              <div className="flex gap-1 mb-3">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    onClick={() => setMyRating(n)}
+                    className={`w-6 h-6 cursor-pointer ${n <= myRating ? "fill-yellow-400 text-yellow-400" : "text-zinc-600"}`}
+                  />
+                ))}
+              </div>
+              <textarea
+                value={myText}
+                onChange={(e) => setMyText(e.target.value)}
+                placeholder="Share your experience with this gear..."
+                rows={2}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 resize-none"
+              />
+              <Button
+                onClick={handleSubmitReview}
+                disabled={myRating === 0 || submittingReview}
+                className="mt-3 w-full bg-gradient-to-r from-blue-600 to-blue-500"
+              >
+                {submittingReview ? "Submitting…" : "Submit Review"}
+              </Button>
+            </div>
+
+            {reviews.length === 0 && (
+              <p className="text-center text-sm text-zinc-600 py-4">No reviews yet. Be the first!</p>
+            )}
+            {reviews.map((review) => (
               <div key={review.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-lg">
-                    {review.avatar}
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-lg overflow-hidden">
+                    {review.author.avatar_url ? (
+                      <img src={review.author.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      review.author.avatar_emoji ?? "🎵"
+                    )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-white">{review.user}</p>
+                    <p className="text-sm font-semibold text-white">{review.author.display_name}</p>
                     <div className="flex items-center gap-1">
                       {renderStars(review.rating)}
-                      <span className="text-xs text-zinc-500 ml-1">{review.date}</span>
+                      <span className="text-xs text-zinc-500 ml-1">{timeAgo(review.created_at)}</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-zinc-400 leading-relaxed">{review.text}</p>
+                {review.text && <p className="text-sm text-zinc-400 leading-relaxed">{review.text}</p>}
               </div>
             ))}
           </div>
         )}
 
         {/* Related gear */}
-        {relatedGear.length > 0 && (
+        {gear.related.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Related gear</h3>
             <div className="space-y-2">
-              {relatedGear.map((related) => (
+              {gear.related.map((related) => (
                 <div
                   key={related.id}
                   onClick={() => navigate(`/app/gear/${related.id}`)}
@@ -267,14 +285,14 @@ export function GearProductScreen() {
         <div className="max-w-screen-md mx-auto">
           <Button
             onClick={handleAddToRig}
-            disabled={isAdded}
+            disabled={added}
             className={`w-full h-12 text-base font-semibold transition-all ${
-              isAdded
+              added
                 ? "bg-emerald-600 hover:bg-emerald-600 border-emerald-600"
-                : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600"
             }`}
           >
-            {isAdded ? (
+            {added ? (
               <>
                 <Check className="w-5 h-5 mr-2" />
                 Added to My Rig

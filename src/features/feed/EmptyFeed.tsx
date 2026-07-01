@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import logo from "@/assets/logo.png";
 import { searchCreatorsData } from "@/features/search/data";
 
 export function EmptyFeed() {
@@ -9,8 +10,8 @@ export function EmptyFeed() {
     <div className="gpfade max-w-screen-md mx-auto">
       <div className="sticky top-0 z-[4] flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
         <div className="flex items-center gap-2.5">
-          <div className="gp-grad w-[34px] h-[34px] rounded-[10px] flex items-center justify-center">
-            <MaterialIcon name="podcasts" size={21} color="#fff" filled />
+          <div className="w-[34px] h-[34px] rounded-[10px] overflow-hidden">
+            <img src={logo} alt="GearPulse" className="w-full h-full object-cover" />
           </div>
           <span className="gp-word font-extrabold text-[21px] tracking-[-.02em]">GearPulse</span>
         </div>
