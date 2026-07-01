@@ -3,8 +3,8 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 
 const NAV_ITEMS = [
   { icon: "home", label: "Home", path: "/app", group: "home" },
-  { icon: "explore", label: "Spaces", path: "/app/spaces", group: "spaces" },
-  { icon: "search", label: "Search", path: "/app/search", group: "search" },
+  { icon: "explore", label: "Explore", path: "/app/search", group: "search" },
+  { icon: "groups", label: "Spaces", path: "/app/spaces", group: "spaces" },
   { icon: "chat_bubble", label: "Messages", path: "/app/messages", group: "messages" },
   { icon: "person", label: "Profile", path: "/app/profile", group: "profile" },
 ];

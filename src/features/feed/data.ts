@@ -1,0 +1,53 @@
+import type { FeedPost } from "@/types";
+import { IMAGES } from "@/lib/images";
+
+export const feedData: FeedPost[] = [
+  {
+    id: 1,
+    author: "Yamaha",
+    username: "@yamaha",
+    verified: true,
+    avatar: "🎹",
+    content: "Introducing our newest stage keyboard - the CK88. Professional performance meets portability.",
+    img: IMAGES.LIVE,
+    likes: 2847,
+    comments: 156,
+    meta: "2h ago · Keyboard Space",
+  },
+  {
+    id: 2,
+    author: "Jacob Rivera",
+    username: "@jacobr",
+    verified: false,
+    avatar: "👨‍🎤",
+    content: "Finally completed my home studio setup! Took 6 months but it was worth every penny. What do you think?",
+    img: IMAGES.STUDIO,
+    likes: 423,
+    comments: 38,
+    meta: "4h ago · Studio Space",
+  },
+  {
+    id: 3,
+    author: "Focusrite",
+    username: "@focusrite",
+    verified: true,
+    avatar: "🔴",
+    content: "New firmware update for Scarlett interfaces is now live. Improved latency and stability. Link in bio.",
+    img: null,
+    likes: 1256,
+    comments: 89,
+    meta: "6h ago · Studio Space",
+  },
+  {
+    id: 4,
+    author: "Sarah Chen",
+    username: "@sarahmusic",
+    verified: false,
+    avatar: "🎸",
+    content: "My pedalboard evolution over the past 3 years. Swipe to see the journey!",
+    img: IMAGES.PEDAL,
+    likes: 892,
+    comments: 67,
+    meta: "8h ago · Guitar Space",
+  },
+];
