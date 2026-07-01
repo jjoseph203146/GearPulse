@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { GearCategory, GearDetail, GearListItem, GearReview, RigItem } from "@/types";
+import type { GearCategory, GearDetail, GearListItem, GearReview, PostAuthor, RigItem } from "@/types";
 
 type RawGearRow = {
   id: string;
@@ -46,11 +46,32 @@ export async function searchGear(query: string, categoryId: string): Promise<Gea
 }
 
 export async function fetchPopularGear(limit = 5): Promise<GearListItem[]> {
+  const [{ data, error }, { data: tagRows }] = await Promise.all([
+    supabase.from("gear").select("id,name,brand,image_url,category:gear_categories(id,label,emoji)"),
+    supabase.from("post_gear").select("gear_id").not("gear_id", "is", null),
+  ]);
+  if (error) throw error;
+
+  const usage = new Map<string, number>();
+  for (const r of tagRows ?? []) {
+    if (!r.gear_id) continue;
+    usage.set(r.gear_id, (usage.get(r.gear_id) ?? 0) + 1);
+  }
+
+  const rows = ((data ?? []) as unknown as RawGearRow[]).sort((a, b) => {
+    const diff = (usage.get(b.id) ?? 0) - (usage.get(a.id) ?? 0);
+    return diff !== 0 ? diff : a.name.localeCompare(b.name);
+  });
+
+  return withOwnerCounts(rows.slice(0, limit));
+}
+
+export async function fetchGearByIds(ids: string[]): Promise<GearListItem[]> {
+  if (ids.length === 0) return [];
   const { data, error } = await supabase
     .from("gear")
     .select("id,name,brand,image_url,category:gear_categories(id,label,emoji)")
-    .order("name")
-    .limit(limit);
+    .in("id", ids);
   if (error) throw error;
   return withOwnerCounts((data ?? []) as unknown as RawGearRow[]);
 }
@@ -64,8 +85,9 @@ export async function fetchGearById(id: string): Promise<GearDetail | null> {
   if (error) throw error;
   if (!gear) return null;
 
-  const [{ count: ownersCount }, { data: relatedRows }, { data: reviewRows }] = await Promise.all([
+  const [{ count: ownersCount }, { count: postsCount }, { data: relatedRows }, { data: reviewRows }] = await Promise.all([
     supabase.from("rig_items").select("id", { count: "exact", head: true }).eq("gear_id", id),
+    supabase.from("post_gear").select("id", { count: "exact", head: true }).eq("gear_id", id),
     supabase
       .from("gear_related")
       .select("related:gear!gear_related_related_gear_id_fkey(id,name,brand,image_url,category:gear_categories(id,label,emoji))")
@@ -95,8 +117,29 @@ export async function fetchGearById(id: string): Promise<GearDetail | null> {
     specs: g.specs ?? [],
     rating: Math.round(rating * 10) / 10,
     reviewsCount: ratings.length,
+    postsCount: postsCount ?? 0,
     related,
   };
+}
+
+/** Distinct authors who've tagged this gear in a post — "creators by gear ecosystem". */
+export async function fetchGearCreators(gearId: string, limit = 10): Promise<PostAuthor[]> {
+  const { data: tagRows, error: tagError } = await supabase.from("post_gear").select("post_id").eq("gear_id", gearId);
+  if (tagError) throw tagError;
+  const postIds = (tagRows ?? []).map((r) => r.post_id);
+  if (postIds.length === 0) return [];
+
+  const { data: postRows, error } = await supabase.from("posts").select("author_id").in("id", postIds);
+  if (error) throw error;
+  const authorIds = [...new Set((postRows ?? []).map((p) => p.author_id))].slice(0, limit);
+  if (authorIds.length === 0) return [];
+
+  const { data: authors, error: authorError } = await supabase
+    .from("profiles")
+    .select("id,username,display_name,avatar_url,avatar_emoji,verified")
+    .in("id", authorIds);
+  if (authorError) throw authorError;
+  return (authors ?? []) as PostAuthor[];
 }
 
 export async function fetchReviews(gearId: string): Promise<GearReview[]> {

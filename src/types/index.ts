@@ -49,6 +49,14 @@ export interface PostAuthor {
   verified: boolean;
 }
 
+export interface PostGearTag {
+  id: string;
+  refId: string | null;
+  name: string;
+  emoji: string;
+  image: string;
+}
+
 export interface Post {
   id: string;
   content: string;
@@ -61,6 +69,7 @@ export interface Post {
   comment_count: number;
   liked_by_me: boolean;
   saved_by_me: boolean;
+  gear: PostGearTag[];
 }
 
 export interface PostComment {
@@ -84,38 +93,22 @@ export interface SpaceListItem {
   memberCount: number;
 }
 
-export interface TrendingGear {
-  id: number;
-  name: string;
-  category: string;
-  trend: string;
-  emoji: string;
-}
 
-export interface SearchCreator {
-  id: number;
-  name: string;
-  username: string;
-  avatar: string;
-  followers: string;
-  verified: boolean;
-}
-
-export interface PopularSpace {
-  id: number;
-  name: string;
-  members: string;
-  emoji: string;
-}
-
-export interface Chat {
-  id: number;
-  name: string;
-  avatar: string;
-  lastMessage: string;
-  time: string;
+export interface ConversationListItem {
+  id: string;
+  other: PostAuthor;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
   unread: boolean;
-  verified: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  read_at: string | null;
 }
 
 export interface RigItem {
@@ -129,20 +122,18 @@ export interface RigItem {
   isCustom: boolean;
 }
 
-export interface NotificationItem {
-  avatar: string;
-  actor: string;
-  action: string;
-  time: string;
-  icon: string;
-  iconColor: string;
-  unread: boolean;
-  thumb: string | null;
-}
+export type NotificationType = "like" | "follow" | "comment" | "mention" | "announcement";
 
-export interface NotificationGroup {
-  label: string;
-  items: NotificationItem[];
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  content: string | null;
+  read: boolean;
+  created_at: string;
+  post_id: string | null;
+  space_id: string | null;
+  actor: PostAuthor | null;
+  post_image_url: string | null;
 }
 
 export interface SettingsItem {
@@ -189,6 +180,7 @@ export interface GearDetail extends GearListItem {
   specs: GearSpec[];
   rating: number;
   reviewsCount: number;
+  postsCount: number;
   related: GearListItem[];
 }
 

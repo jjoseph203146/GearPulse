@@ -17,6 +17,7 @@ import { Spaces } from "@/features/spaces/Spaces";
 import { Search } from "@/features/search/Search";
 import { Messages } from "@/features/messages/Messages";
 import { Profile } from "@/features/profile/Profile";
+import { UserProfile } from "@/features/profile/UserProfile";
 
 import { SpaceDetail } from "@/features/spaces/SpaceDetail";
 import { Chat } from "@/features/messages/Chat";
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="messages" element={<Messages />} />
             <Route path="messages/:chatId" element={<Chat />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="u/:username" element={<UserProfile />} />
             <Route path="profile/my-rig" element={<MyRig />} />
             <Route path="profile/edit" element={<EditProfile />} />
             <Route path="gear/search" element={<GearSearchScreen />} />

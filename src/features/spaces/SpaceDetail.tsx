@@ -4,10 +4,10 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { useAppState } from "@/hooks/useAppState";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { fetchSpaceById, joinSpace, leaveSpace } from "./data";
+import { fetchSpaceById, fetchTrendingGearInSpace, joinSpace, leaveSpace } from "./data";
 import { fetchPostsBySpace, toggleLike, toggleSave } from "@/features/feed/data";
 import { PostCard } from "@/features/feed/PostCard";
-import type { Post, SpaceListItem } from "@/types";
+import type { GearListItem, Post, SpaceListItem } from "@/types";
 
 const TABS = ["Posts", "Gear", "News", "Creators"];
 
@@ -18,6 +18,7 @@ export function SpaceDetail() {
   const { spaceTab, setSpaceTab } = useAppState();
   const [space, setSpace] = useState<SpaceListItem | null | undefined>(undefined);
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [trendingGear, setTrendingGear] = useState<GearListItem[] | null>(null);
 
   const loadSpace = useCallback(async () => {
     if (!user || !spaceId) return;
@@ -32,6 +33,11 @@ export function SpaceDetail() {
     if (!user || !spaceId || spaceTab !== "Posts") return;
     fetchPostsBySpace(spaceId, user.id).then(setPosts);
   }, [user, spaceId, spaceTab]);
+
+  useEffect(() => {
+    if (!spaceId || spaceTab !== "Gear" || trendingGear !== null) return;
+    fetchTrendingGearInSpace(spaceId).then(setTrendingGear);
+  }, [spaceId, spaceTab, trendingGear]);
 
   async function handleToggleJoin() {
     if (!user || !space) return;
@@ -137,7 +143,31 @@ export function SpaceDetail() {
             </>
           )}
           {spaceTab === "Gear" && (
-            <div className="text-center py-12 text-[#71717a] text-sm">Gear recommendations coming soon</div>
+            <>
+              {trendingGear === null && <p className="text-center text-sm text-[#52525b] py-8">Loading trending gear…</p>}
+              {trendingGear?.length === 0 && (
+                <p className="text-center text-sm text-[#52525b] py-8">No gear tagged in this space yet.</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {trendingGear?.map((g) => (
+                  <div
+                    key={g.id}
+                    onClick={() => navigate(`/app/gear/${g.id}`)}
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#27272a] flex-none flex items-center justify-center text-2xl">
+                      {g.image ? <img src={g.image} alt="" className="w-full h-full object-cover" /> : g.categoryEmoji}
+                    </div>
+                    <div>
+                      <div className="text-[15px] font-bold">{g.name}</div>
+                      <div className="text-[13px] text-[#71717a]">
+                        {g.brand} · {g.category}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
           {spaceTab === "News" && (
             <div className="text-center py-12 text-[#71717a] text-sm">Latest news coming soon</div>

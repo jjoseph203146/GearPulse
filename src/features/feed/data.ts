@@ -1,19 +1,48 @@
 import { supabase } from "@/lib/supabase";
-import type { Post, PostComment } from "@/types";
+import type { Post, PostComment, PostGearTag } from "@/types";
 
-const POST_SELECT =
+export const POST_SELECT =
   "id, content, image_url, created_at, space_id, author_id, author:profiles!posts_author_id_fkey(id,username,display_name,avatar_url,avatar_emoji,verified)";
 
-type RawPost = Omit<Post, "like_count" | "comment_count" | "liked_by_me" | "saved_by_me">;
+export type RawPost = Omit<Post, "like_count" | "comment_count" | "liked_by_me" | "saved_by_me" | "gear">;
 
-async function enrichPosts(posts: RawPost[], userId: string, forceSaved = false): Promise<Post[]> {
+type RawGearTagRow = {
+  id: string;
+  post_id: string;
+  gear: { id: string; name: string; image_url: string | null; category: { emoji: string } | null } | null;
+  custom_gear: { id: string; name: string } | null;
+};
+
+async function fetchGearTagsByPost(postIds: string[]): Promise<Map<string, PostGearTag[]>> {
+  const byPost = new Map<string, PostGearTag[]>();
+  if (postIds.length === 0) return byPost;
+
+  const { data, error } = await supabase
+    .from("post_gear")
+    .select("id, post_id, gear:gear(id,name,image_url,category:gear_categories(emoji)), custom_gear:custom_gear(id,name)")
+    .in("post_id", postIds);
+  if (error) throw error;
+
+  for (const row of (data ?? []) as unknown as RawGearTagRow[]) {
+    const tag: PostGearTag = row.gear
+      ? { id: row.id, refId: row.gear.id, name: row.gear.name, emoji: row.gear.category?.emoji ?? "🎵", image: row.gear.image_url ?? "" }
+      : { id: row.id, refId: null, name: row.custom_gear?.name ?? "Custom gear", emoji: "🛠️", image: "" };
+    const list = byPost.get(row.post_id) ?? [];
+    list.push(tag);
+    byPost.set(row.post_id, list);
+  }
+  return byPost;
+}
+
+export async function enrichPosts(posts: RawPost[], userId: string, forceSaved = false): Promise<Post[]> {
   if (posts.length === 0) return [];
   const ids = posts.map((p) => p.id);
 
-  const [{ data: likes }, { data: comments }, { data: mySaves }] = await Promise.all([
+  const [{ data: likes }, { data: comments }, { data: mySaves }, gearByPost] = await Promise.all([
     supabase.from("post_likes").select("post_id,user_id").in("post_id", ids),
     supabase.from("post_comments").select("post_id").in("post_id", ids),
     forceSaved ? Promise.resolve({ data: null }) : supabase.from("post_saves").select("post_id").eq("user_id", userId).in("post_id", ids),
+    fetchGearTagsByPost(ids),
   ]);
 
   const likeCounts = new Map<string, number>();
@@ -32,22 +61,48 @@ async function enrichPosts(posts: RawPost[], userId: string, forceSaved = false)
     comment_count: commentCounts.get(p.id) ?? 0,
     liked_by_me: likedByMe.has(p.id),
     saved_by_me: forceSaved ? true : savedByMe.has(p.id),
+    gear: gearByPost.get(p.id) ?? [],
   }));
 }
 
+// Lightweight v1 ranking: a hand-rolled point score, computed client-side and
+// sorted in memory. No ML, no SQL-side ranking — just a tiebreak-friendly
+// weighting so the feed feels a little personalized without being complex.
+function scorePost(post: Post, spaceIds: Set<string>, followeeIds: Set<string>, ownedGearIds: Set<string>): number {
+  let score = 0;
+  if (followeeIds.has(post.author_id)) score += 5;
+  if (post.space_id && spaceIds.has(post.space_id)) score += 5;
+  if (post.gear.some((g) => g.refId && ownedGearIds.has(g.refId))) score += 2;
+  score += post.like_count * 1;
+  score += post.comment_count * 2;
+  return score;
+}
+
+function rankPosts(posts: Post[], spaceIds: Set<string>, followeeIds: Set<string>, ownedGearIds: Set<string>): Post[] {
+  return [...posts].sort((a, b) => {
+    const diff = scorePost(b, spaceIds, followeeIds, ownedGearIds) - scorePost(a, spaceIds, followeeIds, ownedGearIds);
+    if (diff !== 0) return diff;
+    return +new Date(b.created_at) - +new Date(a.created_at);
+  });
+}
+
 export async function fetchFeed(userId: string): Promise<Post[]> {
-  const [{ data: mySpaces }, { data: myFollows }] = await Promise.all([
+  const [{ data: mySpaces }, { data: myFollows }, { data: myGear }] = await Promise.all([
     supabase.from("space_members").select("space_id").eq("user_id", userId),
     supabase.from("follows").select("followee_id").eq("follower_id", userId),
+    supabase.from("rig_items").select("gear_id").eq("user_id", userId).not("gear_id", "is", null),
   ]);
-  const spaceIds = (mySpaces ?? []).map((r) => r.space_id);
-  const followeeIds = (myFollows ?? []).map((r) => r.followee_id);
+  const spaceIdList = (mySpaces ?? []).map((r) => r.space_id);
+  const followeeIdList = (myFollows ?? []).map((r) => r.followee_id);
+  const spaceIds = new Set(spaceIdList);
+  const followeeIds = new Set(followeeIdList);
+  const ownedGearIds = new Set((myGear ?? []).map((r) => r.gear_id).filter((id): id is string => !!id));
 
   let posts: RawPost[] = [];
 
   const orParts: string[] = [];
-  if (spaceIds.length) orParts.push(`space_id.in.(${spaceIds.join(",")})`);
-  if (followeeIds.length) orParts.push(`author_id.in.(${followeeIds.join(",")})`);
+  if (spaceIdList.length) orParts.push(`space_id.in.(${spaceIdList.join(",")})`);
+  if (followeeIdList.length) orParts.push(`author_id.in.(${followeeIdList.join(",")})`);
 
   if (orParts.length) {
     const { data, error } = await supabase
@@ -60,8 +115,8 @@ export async function fetchFeed(userId: string): Promise<Post[]> {
     posts = (data ?? []) as unknown as RawPost[];
   }
 
-  // Fallback / backfill content so a new user's feed isn't empty: recent posts
-  // from across the whole app (acts as "GearPulse official" discovery content).
+  // Hybrid fallback so a new user (or one with no follows/spaces yet) never
+  // sees an empty feed: backfill with recent posts from across the app.
   if (posts.length < 5) {
     const { data, error } = await supabase
       .from("posts")
@@ -76,11 +131,11 @@ export async function fetchFeed(userId: string): Promise<Post[]> {
         seen.add(p.id);
       }
     }
-    posts.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     posts = posts.slice(0, 30);
   }
 
-  return enrichPosts(posts, userId);
+  const enriched = await enrichPosts(posts, userId);
+  return rankPosts(enriched, spaceIds, followeeIds, ownedGearIds);
 }
 
 export async function fetchSavedPosts(userId: string): Promise<Post[]> {
@@ -113,6 +168,19 @@ export async function fetchPostsBySpace(spaceId: string, userId: string): Promis
     .limit(50);
   if (error) throw error;
   return enrichPosts((data ?? []) as unknown as RawPost[], userId);
+}
+
+export async function fetchPostsByGear(gearId: string, userId: string, limit = 20): Promise<Post[]> {
+  const { data: tagRows, error: tagError } = await supabase.from("post_gear").select("post_id").eq("gear_id", gearId);
+  if (tagError) throw tagError;
+  const postIds = (tagRows ?? []).map((r) => r.post_id);
+  if (postIds.length === 0) return [];
+
+  const { data, error } = await supabase.from("posts").select(POST_SELECT).in("id", postIds);
+  if (error) throw error;
+
+  const enriched = await enrichPosts((data ?? []) as unknown as RawPost[], userId);
+  return enriched.sort((a, b) => b.like_count - a.like_count || +new Date(b.created_at) - +new Date(a.created_at)).slice(0, limit);
 }
 
 export async function toggleLike(postId: string, userId: string, currentlyLiked: boolean) {
@@ -159,9 +227,24 @@ export async function addComment(postId: string, userId: string, content: string
   return data as unknown as PostComment;
 }
 
-export async function createPost(userId: string, content: string, spaceId: string | null, imageUrl: string | null) {
-  const { error } = await supabase
+export async function createPost(
+  userId: string,
+  content: string,
+  spaceId: string | null,
+  imageUrl: string | null,
+): Promise<string> {
+  const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: userId, content, space_id: spaceId, image_url: imageUrl });
+    .insert({ author_id: userId, content, space_id: spaceId, image_url: imageUrl })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function tagPostGear(postId: string, tags: { gearId: string | null; customGearId: string | null }[]) {
+  if (tags.length === 0) return;
+  const rows = tags.map((t) => ({ post_id: postId, gear_id: t.gearId, custom_gear_id: t.customGearId }));
+  const { error } = await supabase.from("post_gear").insert(rows);
   if (error) throw error;
 }

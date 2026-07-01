@@ -1,18 +1,37 @@
-import type { TrendingGear, SearchCreator, PopularSpace } from "@/types";
+import { supabase } from "@/lib/supabase";
+import { enrichPosts, POST_SELECT, type RawPost } from "@/features/feed/data";
+import type { Post, PostAuthor } from "@/types";
 
-export const trendingGearData: TrendingGear[] = [
-  { id: 1, name: "Nord Stage 4", category: "Keyboard", trend: "+156%", emoji: "🎹" },
-  { id: 2, name: "Shure SM7B", category: "Microphone", trend: "+89%", emoji: "🎤" },
-  { id: 3, name: "Yamaha CK88", category: "Stage Piano", trend: "+67%", emoji: "🎼" },
-];
+export async function searchPosts(query: string, userId: string): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(POST_SELECT)
+    .ilike("content", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return enrichPosts((data ?? []) as unknown as RawPost[], userId);
+}
 
-export const searchCreatorsData: SearchCreator[] = [
-  { id: 1, name: "Sarah Chen", username: "@sarahmusic", avatar: "🎸", followers: "45.2k", verified: false },
-  { id: 2, name: "Mike Johnson", username: "@mikej", avatar: "🎹", followers: "32.8k", verified: true },
-];
+export async function searchProfiles(query: string, currentUserId: string): Promise<PostAuthor[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,username,display_name,avatar_url,avatar_emoji,verified")
+    .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+    .neq("id", currentUserId)
+    .order("username")
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []) as PostAuthor[];
+}
 
-export const popularSpacesData: PopularSpace[] = [
-  { id: 1, name: "Guitar Space", members: "15.3k", emoji: "🎸" },
-  { id: 2, name: "Keyboard Space", members: "12.5k", emoji: "🎹" },
-  { id: 3, name: "Production Space", members: "13.9k", emoji: "💻" },
-];
+export async function fetchSuggestedProfiles(currentUserId: string, limit = 5): Promise<PostAuthor[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,username,display_name,avatar_url,avatar_emoji,verified")
+    .neq("id", currentUserId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as PostAuthor[];
+}

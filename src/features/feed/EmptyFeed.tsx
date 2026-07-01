@@ -1,10 +1,30 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import logo from "@/assets/logo.png";
-import { searchCreatorsData } from "@/features/search/data";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchSuggestedProfiles } from "@/features/search/data";
+import { supabase } from "@/lib/supabase";
+import type { PostAuthor } from "@/types";
 
 export function EmptyFeed() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [suggested, setSuggested] = useState<PostAuthor[]>([]);
+  const [following, setFollowing] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    fetchSuggestedProfiles(user.id).then(setSuggested);
+  }, [user]);
+
+  async function handleFollow(profile: PostAuthor) {
+    if (!user) return;
+    setFollowing((prev) => new Set(prev).add(profile.id));
+    await supabase
+      .from("follows")
+      .upsert({ follower_id: user.id, followee_id: profile.id }, { onConflict: "follower_id,followee_id", ignoreDuplicates: true });
+  }
 
   return (
     <div className="gpfade max-w-screen-md mx-auto">
@@ -45,30 +65,40 @@ export function EmptyFeed() {
           Discover Spaces
         </button>
       </div>
-      <div className="px-4 pt-8 pb-6">
-        <div className="text-[11.5px] font-bold text-[#71717a] tracking-[.06em] mb-3">SUGGESTED CREATORS</div>
-        <div className="flex flex-col gap-3">
-          {searchCreatorsData.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between px-3.5 py-3 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="gp-grad w-11 h-11 rounded-full flex items-center justify-center text-xl">
-                  {c.avatar}
+      {suggested.length > 0 && (
+        <div className="px-4 pt-8 pb-6">
+          <div className="text-[11.5px] font-bold text-[#71717a] tracking-[.06em] mb-3">SUGGESTED CREATORS</div>
+          <div className="flex flex-col gap-3">
+            {suggested.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/app/u/${p.username}`)}
+                className="flex items-center justify-between px-3.5 py-3 rounded-2xl border border-[#27272a] bg-[rgba(24,24,27,.5)] cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="gp-grad w-11 h-11 rounded-full flex items-center justify-center text-xl overflow-hidden">
+                    {p.avatar_url ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" /> : p.avatar_emoji ?? "🎵"}
+                  </div>
+                  <div>
+                    <div className="text-[14.5px] font-bold">{p.display_name}</div>
+                    <div className="text-xs text-[#71717a]">@{p.username}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[14.5px] font-bold">{c.name}</div>
-                  <div className="text-xs text-[#71717a]">{c.followers} followers</div>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollow(p);
+                  }}
+                  disabled={following.has(p.id)}
+                  className="gp-grad h-[34px] px-4 rounded-[10px] border-none text-white text-[13px] font-bold cursor-pointer font-sans disabled:opacity-40"
+                >
+                  {following.has(p.id) ? "Following" : "Follow"}
+                </button>
               </div>
-              <button className="gp-grad h-[34px] px-4 rounded-[10px] border-none text-white text-[13px] font-bold cursor-pointer font-sans">
-                Follow
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

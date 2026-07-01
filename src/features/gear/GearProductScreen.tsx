@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Share2, Users, Star, Check, ChevronRight, Package } from "lucide-react";
+import { ArrowLeft, Share2, Users, MessageSquare, Star, Check, ChevronRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { addGearToRig, fetchGearById, fetchReviews, isGearInRig, submitReview } from "@/features/gear/data";
+import { addGearToRig, fetchGearById, fetchGearCreators, fetchReviews, isGearInRig, submitReview } from "@/features/gear/data";
+import { fetchPostsByGear, toggleLike, toggleSave } from "@/features/feed/data";
+import { PostCard } from "@/features/feed/PostCard";
 import { useAuth } from "@/hooks/useAuth";
-import type { GearDetail, GearReview, GearSpec } from "@/types";
+import type { GearDetail, GearReview, GearSpec, Post, PostAuthor } from "@/types";
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -21,6 +23,8 @@ export function GearProductScreen() {
   const { user } = useAuth();
   const [gear, setGear] = useState<GearDetail | null | undefined>(undefined);
   const [reviews, setReviews] = useState<GearReview[]>([]);
+  const [posts, setPosts] = useState<Post[] | null>(null);
+  const [creators, setCreators] = useState<PostAuthor[]>([]);
   const [added, setAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "posts" | "reviews">("details");
   const [myRating, setMyRating] = useState(0);
@@ -31,12 +35,34 @@ export function GearProductScreen() {
     if (!gearId) return;
     fetchGearById(gearId).then(setGear);
     fetchReviews(gearId).then(setReviews);
+    fetchGearCreators(gearId).then(setCreators);
   }, [gearId]);
 
   useEffect(() => {
     if (!user || !gearId) return;
     isGearInRig(user.id, gearId).then(setAdded);
   }, [user, gearId]);
+
+  useEffect(() => {
+    if (!user || !gearId || activeTab !== "posts" || posts !== null) return;
+    fetchPostsByGear(gearId, user.id).then(setPosts);
+  }, [user, gearId, activeTab, posts]);
+
+  async function handleToggleLike(post: Post) {
+    if (!user) return;
+    setPosts((prev) =>
+      prev?.map((p) =>
+        p.id === post.id ? { ...p, liked_by_me: !p.liked_by_me, like_count: p.like_count + (p.liked_by_me ? -1 : 1) } : p,
+      ) ?? prev,
+    );
+    await toggleLike(post.id, user.id, post.liked_by_me);
+  }
+
+  async function handleToggleSave(post: Post) {
+    if (!user) return;
+    setPosts((prev) => prev?.map((p) => (p.id === post.id ? { ...p, saved_by_me: !p.saved_by_me } : p)) ?? prev);
+    await toggleSave(post.id, user.id, post.saved_by_me);
+  }
 
   if (gear === undefined) {
     return <div className="min-h-screen bg-zinc-950" />;
@@ -133,6 +159,14 @@ export function GearProductScreen() {
             </div>
             <div className="w-px h-8 bg-zinc-800" />
             <div className="flex items-center gap-1.5 flex-1">
+              <MessageSquare className="w-4 h-4 text-purple-400" />
+              <div>
+                <p className="text-sm font-semibold text-white">{gear.postsCount.toLocaleString()}</p>
+                <p className="text-xs text-zinc-500">posts</p>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-zinc-800" />
+            <div className="flex items-center gap-1.5 flex-1">
               <div className="flex gap-0.5">{renderStars(gear.rating)}</div>
               <div>
                 <p className="text-sm font-semibold text-white">{gear.rating || "—"}</p>
@@ -181,8 +215,14 @@ export function GearProductScreen() {
         )}
 
         {activeTab === "posts" && (
-          <div className="mb-4">
-            <p className="text-center text-sm text-zinc-600 py-8">Community posts featuring this gear coming soon</p>
+          <div className="mb-4 -mx-4">
+            {posts === null && <p className="text-center text-sm text-zinc-600 py-8">Loading posts…</p>}
+            {posts?.length === 0 && (
+              <p className="text-center text-sm text-zinc-600 py-8">No posts tagged with this gear yet.</p>
+            )}
+            {posts?.map((post) => (
+              <PostCard key={post.id} post={post} onToggleLike={handleToggleLike} onToggleSave={handleToggleSave} />
+            ))}
           </div>
         )}
 
@@ -249,6 +289,35 @@ export function GearProductScreen() {
                 {review.text && <p className="text-sm text-zinc-400 leading-relaxed">{review.text}</p>}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Creators using this gear */}
+        {creators.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Creators using this gear</h3>
+            <div className="space-y-2">
+              {creators.map((creator) => (
+                <div
+                  key={creator.id}
+                  onClick={() => navigate(`/app/u/${creator.username}`)}
+                  className="flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0 flex items-center justify-center text-lg">
+                    {creator.avatar_url ? (
+                      <img src={creator.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      creator.avatar_emoji ?? "🎵"
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{creator.display_name}</p>
+                    <p className="text-xs text-zinc-500">@{creator.username}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

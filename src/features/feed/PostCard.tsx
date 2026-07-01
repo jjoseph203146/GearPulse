@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { useAuth } from "@/hooks/useAuth";
 import { addComment, fetchComments } from "./data";
@@ -21,6 +22,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onToggleLike, onToggleSave }: PostCardProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<PostComment[] | null>(null);
@@ -82,6 +84,20 @@ export function PostCard({ post, onToggleLike, onToggleSave }: PostCardProps) {
       <div className="px-4 pb-3">
         <p className="text-[14.5px] leading-[1.5] text-[#f4f4f5]">{post.content}</p>
       </div>
+      {post.gear.length > 0 && (
+        <div className="px-4 pb-3 flex flex-wrap gap-2">
+          {post.gear.map((g) => (
+            <div
+              key={g.id}
+              onClick={() => g.refId && navigate(`/app/gear/${g.refId}`)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#27272a] border border-[#3f3f46] text-[12px] text-[#d4d4d8] ${g.refId ? "cursor-pointer" : ""}`}
+            >
+              <span>{g.emoji}</span>
+              <span>{g.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {post.image_url && (
         <div className="w-full aspect-video bg-[#18181b] overflow-hidden">
           <img src={post.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
