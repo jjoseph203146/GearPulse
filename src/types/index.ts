@@ -61,6 +61,7 @@ export interface Post {
   id: string;
   content: string;
   image_url: string | null;
+  video_url: string | null;
   created_at: string;
   space_id: string | null;
   author_id: string;

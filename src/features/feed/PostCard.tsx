@@ -98,10 +98,16 @@ export function PostCard({ post, onToggleLike, onToggleSave }: PostCardProps) {
           ))}
         </div>
       )}
-      {post.image_url && (
+      {post.video_url ? (
         <div className="w-full aspect-video bg-[#18181b] overflow-hidden">
-          <img src={post.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <video src={post.video_url} controls playsInline className="w-full h-full object-cover" />
         </div>
+      ) : (
+        post.image_url && (
+          <div className="w-full aspect-video bg-[#18181b] overflow-hidden">
+            <img src={post.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        )
       )}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">

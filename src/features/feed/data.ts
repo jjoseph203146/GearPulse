@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { Post, PostComment, PostGearTag } from "@/types";
 
 export const POST_SELECT =
-  "id, content, image_url, created_at, space_id, author_id, author:profiles!posts_author_id_fkey(id,username,display_name,avatar_url,avatar_emoji,verified)";
+  "id, content, image_url, video_url, created_at, space_id, author_id, author:profiles!posts_author_id_fkey(id,username,display_name,avatar_url,avatar_emoji,verified)";
 
 export type RawPost = Omit<Post, "like_count" | "comment_count" | "liked_by_me" | "saved_by_me" | "gear">;
 
@@ -232,10 +232,11 @@ export async function createPost(
   content: string,
   spaceId: string | null,
   imageUrl: string | null,
+  videoUrl: string | null = null,
 ): Promise<string> {
   const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: userId, content, space_id: spaceId, image_url: imageUrl })
+    .insert({ author_id: userId, content, space_id: spaceId, image_url: imageUrl, video_url: videoUrl })
     .select("id")
     .single();
   if (error) throw error;

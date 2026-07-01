@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { VideoRecorder, type RecordedVideo } from "@/components/VideoRecorder";
 import { useAuth } from "@/hooks/useAuth";
+import { usePostVideoUpload } from "@/hooks/usePostVideoUpload";
 import { createPost, tagPostGear } from "@/features/feed/data";
 import { fetchRig } from "@/features/gear/data";
 import { fetchSpaces } from "@/features/spaces/data";
@@ -17,7 +19,9 @@ export function CreatePost() {
   const [rig, setRig] = useState<RigItem[]>([]);
   const [showGearPicker, setShowGearPicker] = useState(false);
   const [taggedGear, setTaggedGear] = useState<RigItem[]>([]);
+  const [video, setVideo] = useState<RecordedVideo | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { uploadPostVideo, uploading, error: videoError } = usePostVideoUpload();
 
   useEffect(() => {
     if (!user) return;
@@ -30,10 +34,15 @@ export function CreatePost() {
   }
 
   async function handlePost() {
-    if (!user || !text.trim() || submitting) return;
+    if (!user || (!text.trim() && !video) || submitting) return;
     setSubmitting(true);
     try {
-      const postId = await createPost(user.id, text.trim(), spaceId, null);
+      let videoUrl: string | null = null;
+      if (video) {
+        videoUrl = await uploadPostVideo(video.blob);
+        if (!videoUrl) return;
+      }
+      const postId = await createPost(user.id, text.trim(), spaceId, null, videoUrl);
       await tagPostGear(
         postId,
         taggedGear.map((g) => ({ gearId: g.isCustom ? null : g.refId, customGearId: g.isCustom ? g.id : null })),
@@ -55,10 +64,10 @@ export function CreatePost() {
         <span className="text-base font-extrabold">New Post</span>
         <button
           onClick={handlePost}
-          disabled={!text.trim() || submitting}
+          disabled={(!text.trim() && !video) || submitting}
           className="gp-grad h-9 px-[18px] rounded-[10px] border-none text-white text-[13.5px] font-bold cursor-pointer font-sans disabled:opacity-40"
         >
-          {submitting ? "Posting…" : "Post"}
+          {uploading ? "Uploading…" : submitting ? "Posting…" : "Post"}
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
@@ -119,6 +128,9 @@ export function CreatePost() {
           className="w-full min-h-[148px] border-none bg-transparent text-[#fafafa] text-base leading-[1.55] outline-none resize-none placeholder:text-[#52525b]"
         />
 
+        <VideoRecorder video={video} onChange={setVideo} />
+        {videoError && <p className="text-[12.5px] text-[#f87171] mt-2">{videoError}</p>}
+
         {taggedGear.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {taggedGear.map((g) => (
@@ -156,7 +168,7 @@ export function CreatePost() {
                 <div
                   key={g.id}
                   onClick={() => toggleGearTag(g)}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer ${selected ? "bg-[rgba(168,85,247,.1)]" : "hover:bg-[#27272a]"}`}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer ${selected ? "bg-[rgba(59,130,246,.1)]" : "hover:bg-[#27272a]"}`}
                 >
                   <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#27272a] flex items-center justify-center text-lg flex-none">
                     {g.image ? <img src={g.image} alt="" className="w-full h-full object-cover" /> : g.emoji}
