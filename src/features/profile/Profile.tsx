@@ -4,15 +4,10 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { useAppState } from "@/hooks/useAppState";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchRig } from "@/features/gear/data";
-import type { RigItem } from "@/types";
+import { deletePost, fetchPostsByAuthor } from "@/features/feed/data";
+import type { Post, RigItem } from "@/types";
 import { cn } from "@/lib/utils";
 
-const POST_GRID = [
-  "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80",
-  "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80",
-  "https://images.unsplash.com/photo-1598653222000-6b7b7a552625?w=800&q=80",
-  "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&q=80",
-];
 const TABS = ["Posts", "My Rig", "Awards"];
 
 export function Profile() {
@@ -20,17 +15,35 @@ export function Profile() {
   const { profileTab, setProfileTab } = useAppState();
   const { user } = useAuth();
   const [rig, setRig] = useState<RigItem[]>([]);
+  const [posts, setPosts] = useState<Post[] | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     fetchRig(user.id).then(setRig);
+    fetchPostsByAuthor(user.id, user.id).then(setPosts);
   }, [user]);
+
+  async function handleDeletePost(postId: string) {
+    if (!user) return;
+    if (!window.confirm("Delete this post? This can't be undone.")) return;
+    setDeletingId(postId);
+    try {
+      await deletePost(postId, user.id);
+      setPosts((prev) => prev?.filter((p) => p.id !== postId) ?? null);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="gpfade max-w-screen-md mx-auto">
       <div className="sticky top-0 z-[4] flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
         <h1 className="text-xl font-extrabold tracking-[-.02em]">Profile</h1>
-        <MaterialIcon name="settings" size={24} color="#a1a1aa" className="cursor-pointer" onClick={() => navigate("/app/settings")} />
+        <div className="flex items-center gap-3">
+          <MaterialIcon name="add_box" size={24} color="#a1a1aa" className="cursor-pointer" onClick={() => navigate("/app/create-post")} />
+          <MaterialIcon name="settings" size={24} color="#a1a1aa" className="cursor-pointer" onClick={() => navigate("/app/settings")} />
+        </div>
       </div>
       <div className="p-4">
         <div className="flex items-start gap-4 mb-6">
@@ -99,13 +112,43 @@ export function Profile() {
         </div>
 
         {profileTab === "Posts" && (
-          <div className="grid grid-cols-2 gap-2">
-            {POST_GRID.map((img, i) => (
-              <div key={i} className="aspect-square rounded-xl overflow-hidden">
-                <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <>
+            {posts === null && <p className="text-center text-sm text-[#71717a] py-10">Loading…</p>}
+            {posts !== null && posts.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-[18px] bg-[#18181b] border border-[#27272a] flex items-center justify-center mx-auto mb-4">
+                  <MaterialIcon name="dynamic_feed" size={32} color="#3f3f46" />
+                </div>
+                <p className="text-[15px] font-bold text-[#a1a1aa] mb-1">No posts yet</p>
+                <button
+                  onClick={() => navigate("/app/create-post")}
+                  className="gp-grad mt-4 h-10 px-5 rounded-[11px] border-none text-white text-[13.5px] font-bold cursor-pointer font-sans"
+                >
+                  Create your first post
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+            {posts !== null && posts.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {posts.map((post) => (
+                  <div key={post.id} className="relative aspect-square rounded-xl overflow-hidden bg-[#18181b] border border-[#27272a]">
+                    {post.image_url ? (
+                      <img src={post.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <p className="p-3 text-[12.5px] leading-[1.4] text-[#d4d4d8] line-clamp-6">{post.content}</p>
+                    )}
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      disabled={deletingId === post.id}
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center cursor-pointer border-none disabled:opacity-50"
+                    >
+                      <MaterialIcon name="delete" size={15} color="#fafafa" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {profileTab === "My Rig" && (

@@ -248,3 +248,18 @@ export async function tagPostGear(postId: string, tags: { gearId: string | null;
   const { error } = await supabase.from("post_gear").insert(rows);
   if (error) throw error;
 }
+
+export async function fetchPostsByAuthor(authorId: string, viewerId: string): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(POST_SELECT)
+    .eq("author_id", authorId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return enrichPosts((data ?? []) as unknown as RawPost[], viewerId);
+}
+
+export async function deletePost(postId: string, authorId: string) {
+  const { error } = await supabase.from("posts").delete().eq("id", postId).eq("author_id", authorId);
+  if (error) throw error;
+}
