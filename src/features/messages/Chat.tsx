@@ -60,7 +60,7 @@ export function Chat() {
   if (!other || messages === null) return <div className="min-h-screen bg-[#09090b]" />;
 
   return (
-    <div className="flex flex-col h-screen max-w-screen-md mx-auto">
+    <div className="flex flex-col max-w-screen-md mx-auto h-[calc(100vh-env(safe-area-inset-top))]">
       <div className="flex-none flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
         <div className="flex items-center gap-3">
           <MaterialIcon name="arrow_back" size={25} color="#a1a1aa" className="cursor-pointer" onClick={() => navigate("/app/messages")} />

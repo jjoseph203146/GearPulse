@@ -47,7 +47,7 @@ export function CreatePost() {
   const selectedSpace = spaces.find((s) => s.id === spaceId);
 
   return (
-    <div className="flex flex-col h-screen max-w-screen-md mx-auto">
+    <div className="flex flex-col max-w-screen-md mx-auto h-[calc(100vh-env(safe-area-inset-top))]">
       <div className="flex-none flex items-center justify-between px-4 py-3.5 bg-[rgba(24,24,27,.95)] backdrop-blur-md border-b border-[#27272a]">
         <span onClick={() => navigate("/app")} className="text-[15px] font-semibold text-[#a1a1aa] cursor-pointer">
           Cancel
